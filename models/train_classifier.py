@@ -44,6 +44,8 @@ def build_model():
     with open("classifier.pkl", "rb") as f:
         model = pickle.load(f)
     return model
+
+
 #         pipeline = Pipeline([
 #             ('vect', CountVectorizer(tokenizer=tokenize)),
 #             ('tfidf', TfidfTransformer()),
