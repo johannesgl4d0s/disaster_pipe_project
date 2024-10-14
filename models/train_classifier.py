@@ -10,6 +10,7 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GridSearchCV
 
 from nltk.stem import WordNetLemmatizer
 import pickle
@@ -57,6 +58,25 @@ def build_model():
 def evaluate_model(model, X_test, Y_test, category_names):
     y_pred = model.predict(X_test)
     print(classification_report(Y_test, y_pred, target_names= category_names))
+    # use gridsearch
+    parameters = {
+        'cV__max_df': [0.75, 1.0],  # max_df: Ignore terms that appear in more than x% of the documents
+        'cV__ngram_range': [(1, 1), (1, 2)],  # n-grams: Unigrams or bigrams
+        'tfidf__use_idf': [True, False],  # Use or not use IDF
+
+    }
+    cv = GridSearchCV(pipeline, parameters, cv=3, verbose=3, n_jobs=-1)
+
+    cv.fit(X_train, y_train)
+
+    # Print the best parameters
+    print("Best Parameters: ", cv.best_params_)
+
+    # Evaluate the best estimator on test data
+    best_model = cv.best_estimator_
+    y_pred = best_model.predict(X_test)
+    print(classification_report(Y_test, y_pred, target_names=category_names))
+    return best_model
 
 
 def save_model(model, model_filepath):
@@ -78,7 +98,7 @@ def main():
         model.fit(X_train, Y_train)
         
         print('Evaluating model...')
-        evaluate_model(model, X_test, Y_test, category_names)
+        model = evaluate_model(model, X_test, Y_test, category_names)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
         save_model(model, model_filepath)

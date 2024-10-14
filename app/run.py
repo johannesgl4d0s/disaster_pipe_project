@@ -42,10 +42,15 @@ def index():
     # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').sum()['weather_related']
     genre_names = list(genre_counts.index)
+
+    # Extracting sum of columns from 6th column onwards
+    column_sums = df.iloc[:, 6:].sum()
+    column_names = list(column_sums.index)
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
+        # First graph: sum of weather-related messages by genre
         {
             'data': [
                 Bar(
@@ -53,14 +58,31 @@ def index():
                     y=genre_counts
                 )
             ],
-
             'layout': {
-                'title': 'Sum of weather related messages',
+                'title': 'Sum of Weather Related Messages by Genre',
                 'yaxis': {
                     'title': "Sum"
                 },
                 'xaxis': {
                     'title': "Genre"
+                }
+            }
+        },
+        # Second graph: sum of columns starting from 6th column onwards
+        {
+            'data': [
+                Bar(
+                    x=column_names,
+                    y=column_sums
+                )
+            ],
+            'layout': {
+                'title': 'Sum of Columns Starting from 6th Column',
+                'yaxis': {
+                    'title': "Sum"
+                },
+                'xaxis': {
+                    'title': "Columns"
                 }
             }
         }
