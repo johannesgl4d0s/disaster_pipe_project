@@ -3,7 +3,8 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 from nltk.tokenize import word_tokenize
 import nltk
-nltk.download(['punkt', 'wordnet','punkt_tab' ])
+
+nltk.download(['punkt', 'wordnet', 'punkt_tab'])
 from sklearn.pipeline import Pipeline
 from sklearn.datasets import make_multilabel_classification
 from sklearn.multioutput import MultiOutputClassifier
@@ -15,6 +16,8 @@ from sklearn.model_selection import GridSearchCV
 from nltk.stem import WordNetLemmatizer
 import pickle
 from sklearn.metrics import classification_report
+
+
 def load_data(database_filepath):
     engine = create_engine(f'sqlite:///{database_filepath}')
     with engine.connect() as conn:
@@ -24,8 +27,8 @@ def load_data(database_filepath):
     X = df['message'].values
     Y = df.iloc[:, 6:].values
     category_names = df.columns[6:]
-    
-    return X,Y, category_names
+
+    return X, Y, category_names
 
 
 def tokenize(text):
@@ -38,7 +41,6 @@ def tokenize(text):
         clean_tokens.append(clean_tok)
 
     return clean_tokens
-   
 
 
 def build_model():
@@ -55,17 +57,17 @@ def build_model():
 #         return pipeline
 
 
-def evaluate_model(model, X_test, Y_test, category_names):
+def evaluate_model(model, X_test, Y_test, category_names, X_train, y_train):
     y_pred = model.predict(X_test)
-    print(classification_report(Y_test, y_pred, target_names= category_names))
+    print(classification_report(Y_test, y_pred, target_names=category_names))
     # use gridsearch
     parameters = {
-        'cV__max_df': [0.75, 1.0],  # max_df: Ignore terms that appear in more than x% of the documents
-        'cV__ngram_range': [(1, 1), (1, 2)],  # n-grams: Unigrams or bigrams
+
+        'vect__ngram_range': [(1, 1), (1, 2)],  # n-grams: Unigrams or bigrams
         'tfidf__use_idf': [True, False],  # Use or not use IDF
 
     }
-    cv = GridSearchCV(pipeline, parameters, cv=3, verbose=3, n_jobs=-1)
+    cv = GridSearchCV(model, parameters, cv=3, verbose=3, n_jobs=-1)
 
     cv.fit(X_train, y_train)
 
@@ -90,15 +92,15 @@ def main():
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-        
+
         print('Building model...')
         model = build_model()
-        
+
         print('Training model...')
         model.fit(X_train, Y_train)
-        
+
         print('Evaluating model...')
-        model = evaluate_model(model, X_test, Y_test, category_names)
+        model = evaluate_model(model, X_test, Y_test, category_names, X_train, Y_train)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
         save_model(model, model_filepath)
@@ -106,9 +108,9 @@ def main():
         print('Trained model saved!')
 
     else:
-        print('Please provide the filepath of the disaster messages database '\
-              'as the first argument and the filepath of the pickle file to '\
-              'save the model to as the second argument. \n\nExample: python '\
+        print('Please provide the filepath of the disaster messages database ' \
+              'as the first argument and the filepath of the pickle file to ' \
+              'save the model to as the second argument. \n\nExample: python ' \
               'train_classifier.py ../data/DisasterResponse.db classifier.pkl')
 
 
