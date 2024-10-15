@@ -1,4 +1,5 @@
 import sys
+import os
 import pandas as pd
 from sqlalchemy import create_engine, text
 from nltk.tokenize import word_tokenize
@@ -43,10 +44,36 @@ def tokenize(text):
     return clean_tokens
 
 
-def build_model():
-    with open("classifier.pkl", "rb") as f:
-        model = pickle.load(f)
-    return model
+def build_model(model_filepath, X_train, y_train):
+    if os.path.exists(model_filepath):
+        # Load the model from the pickle file
+        with open(model_filepath, "rb") as f:
+            best_model = pickle.load(f)
+    else:
+        print('creating model')
+        model = Pipeline([
+            ('vect', CountVectorizer(tokenizer=tokenize)),
+            ('tfidf', TfidfTransformer()),
+            ('clf', MultiOutputClassifier(RandomForestClassifier()))
+        ])
+        # use gridsearch
+        parameters = {
+
+            'vect__ngram_range': [(1, 1), (1, 2)],  # n-grams: Unigrams or bigrams
+            'tfidf__use_idf': [True, False],  # Use or not use IDF
+
+        }
+        cv = GridSearchCV(model, parameters, cv=3, verbose=3, n_jobs=-1)
+
+        cv.fit(X_train, y_train)
+
+        # Print the best parameters
+        print("Best Parameters: ", cv.best_params_)
+
+        # Evaluate the best estimator on test data
+        best_model = cv.best_estimator_
+
+    return best_model
 
 
 #         pipeline = Pipeline([
@@ -60,25 +87,6 @@ def build_model():
 def evaluate_model(model, X_test, Y_test, category_names, X_train, y_train):
     y_pred = model.predict(X_test)
     print(classification_report(Y_test, y_pred, target_names=category_names))
-    # use gridsearch
-    parameters = {
-
-        'vect__ngram_range': [(1, 1), (1, 2)],  # n-grams: Unigrams or bigrams
-        'tfidf__use_idf': [True, False],  # Use or not use IDF
-
-    }
-    cv = GridSearchCV(model, parameters, cv=3, verbose=3, n_jobs=-1)
-
-    cv.fit(X_train, y_train)
-
-    # Print the best parameters
-    print("Best Parameters: ", cv.best_params_)
-
-    # Evaluate the best estimator on test data
-    best_model = cv.best_estimator_
-    y_pred = best_model.predict(X_test)
-    print(classification_report(Y_test, y_pred, target_names=category_names))
-    return best_model
 
 
 def save_model(model, model_filepath):
@@ -94,13 +102,13 @@ def main():
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
 
         print('Building model...')
-        model = build_model()
+        model = build_model(model_filepath, X_train, Y_train)
 
         print('Training model...')
         model.fit(X_train, Y_train)
 
         print('Evaluating model...')
-        model = evaluate_model(model, X_test, Y_test, category_names, X_train, Y_train)
+        evaluate_model(model, X_test, Y_test, category_names, X_train, Y_train)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
         save_model(model, model_filepath)
